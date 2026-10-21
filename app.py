@@ -14,14 +14,13 @@ import matplotlib.pyplot as plt
 import os
 import requests
 
-# Configuração da página
+
 st.set_page_config(
     page_title="Mapa de Dose 3D - XII Jornada Acadêmica de Física Médica",
     page_icon="📊",
     layout="centered"
 )
 
-# Estilo para ocultar absolutamente QUALQUER número ou valor flutuante do slider
 st.markdown("""
     <style>
         hr {
@@ -41,7 +40,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- BARRA LATERAL ---
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
@@ -56,7 +54,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("<p style='text-align: center; color: #b30000; font-size: 13px; font-weight: bold;'>Obrigada pela atenção!</p>", unsafe_allow_html=True)
 
-# --- CORPO PRINCIPAL ---
 st.title("Visualizador de Mapa de Dose 3D")
 st.markdown("Utilize o controle deslizante abaixo para navegar pelas fatias de profundidade do fantoma.")
 st.markdown("<hr>", unsafe_allow_html=True)
@@ -126,7 +123,6 @@ def carregar_dados():
 
 dose_normalizada, limites_xy, z_coords, nbz = carregar_dados()
 
-# --- CONTROLE SLIDER (Sem números visíveis) ---
 fatia_inicial_valida = 8 if nbz > 8 else 0
 
 fatia_z = st.slider(
@@ -140,7 +136,6 @@ fatia_z = st.slider(
 
 corte_xy = dose_normalizada[:, :, fatia_z].T
 
-# --- RENDERIZAÇÃO DO GRÁFICO (APENAS AMARELO, LARANJA E VERMELHO) ---
 fig, ax = plt.subplots(figsize=(8, 6))
 
 im = ax.imshow(
