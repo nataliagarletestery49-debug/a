@@ -14,14 +14,27 @@ import matplotlib.pyplot as plt
 import os
 import requests
 
-# Configuração da página e layout wide para melhor aproveitamento
+# Configuração da página
 st.set_page_config(
     page_title="Mapa de Dose 3D - XII Jornada Acadêmica de Física Médica",
     page_icon="📊",
     layout="centered"
 )
 
-# --- BARRA LATERAL (ESTILO PROFISSIONAL) ---
+# Estilo personalizado em vermelho para combinar com a identidade visual
+st.markdown("""
+    <style>
+        hr {
+            border: 1px solid #b30000;
+        }
+        .stSlider label {
+            color: #b30000;
+            font-weight: bold;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- BARRA LATERAL ---
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
@@ -30,98 +43,104 @@ with st.sidebar:
     st.markdown("### Sobre o Trabalho")
     st.info(
         "**XII Jornada Acadêmica de Física Médica**\n\n"
-        "Visualizador interativo de mapas de dose 3D em fantomas para controle e análise de radiação."
+        "Visualizador interativo do mapa de dose 3D desenvolvido para a apresentação do trabalho "
+        "\"Desenvolvimento e caracterização de um fantoma impresso em 3D para testes de controle de qualidade em tomografia computadorizada\"."
     )
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 13px;'>Obrigada pela atenção!</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #b30000; font-size: 13px; font-weight: bold;'>Obrigada pela atenção!</p>", unsafe_allow_html=True)
 
-# --- CORPO PRINCIPAL DO APLICATIVO ---
-st.title("🗺️ Visualizador de Mapa de Dose 3D")
+# --- CORPO PRINCIPAL ---
+st.title("Visualizador de Mapa de Dose 3D")
 st.markdown("Utilize o controle deslizante abaixo para navegar pelas fatias de profundidade do fantoma.")
+st.markdown("<hr>", unsafe_allow_html=True)
 
 ARQUIVO_DADOS = "3d-dose-map.dat"
 ID_DO_DRIVE = "17_tO2ricRqTDGZNqwjcdfHfD_x0pIRqL"
 
 @st.cache_data(show_spinner="A carregar e processar o mapa de dose (70 MB)... Por favor, aguarde.")
 def carregar_dados():
-    if not os.path.exists(ARQUIVO_DADOS) or os.path.getsize(ARQUIVO_DADOS) < 1000000:
-        url = f"https://drive.usercontent.google.com/download?id={ID_DO_DRIVE}&export=download&confirm=t"
-        resposta = requests.get(url, stream=True)
-        with open(ARQUIVO_DADOS, "wb") as f:
-            for bloco in resposta.iter_content(chunk_size=32768):
-                if bloco:
-                    f.write(bloco)
+    try:
+        if not os.path.exists(ARQUIVO_DADOS) or os.path.getsize(ARQUIVO_DADOS) < 1000000:
+            url = f"https://drive.usercontent.google.com/download?id={ID_DO_DRIVE}&export=download&confirm=t"
+            resposta = requests.get(url, stream=True)
+            with open(ARQUIVO_DADOS, "wb") as f:
+                for bloco in resposta.iter_content(chunk_size=32768):
+                    if bloco:
+                        f.write(bloco)
 
-    colunas = ['X', 'Y', 'Z', 'Dose', 'Incerteza', 'IX', 'IY', 'IZ']
+        colunas = ['X', 'Y', 'Z', 'Dose', 'Incerteza', 'IX', 'IY', 'IZ']
 
-    df = pd.read_csv(
-        ARQUIVO_DADOS,
-        sep=r'\s+',
-        comment='#',
-        names=colunas,
-        on_bad_lines='skip'
-    )
+        df = pd.read_csv(
+            ARQUIVO_DADOS,
+            sep=r'\s+',
+            comment='#',
+            names=colunas,
+            on_bad_lines='skip'
+        )
 
-    df = df.dropna().copy()
+        df = df.dropna().copy()
 
-    df['IX'] = df['IX'].astype(int)
-    df['IY'] = df['IY'].astype(int)
-    df['IZ'] = df['IZ'].astype(int)
+        df['IX'] = df['IX'].astype(int)
+        df['IY'] = df['IY'].astype(int)
+        df['IZ'] = df['IZ'].astype(int)
 
-    nbx = int(df['IX'].max())
-    nby = int(df['IY'].max())
-    nbz = int(df['IZ'].max())
+        nbx = int(df['IX'].max())
+        nby = int(df['IY'].max())
+        nbz = int(df['IZ'].max())
 
-    dose_3d = np.zeros((nbx, nby, nbz), dtype=float)
+        dose_3d = np.zeros((nbx, nby, nbz), dtype=float)
 
-    ix = df['IX'].values - 1
-    iy = df['IY'].values - 1
-    iz = df['IZ'].values - 1
+        ix = df['IX'].values - 1
+        iy = df['IY'].values - 1
+        iz = df['IZ'].values - 1
 
-    dose_3d[ix, iy, iz] = df['Dose'].values
+        dose_3d[ix, iy, iz] = df['Dose'].values
 
-    x_coords = np.sort(df['X'].unique())
-    y_coords = np.sort(df['Y'].unique())
-    z_coords = np.sort(df['Z'].unique())
+        x_coords = np.sort(df['X'].unique())
+        y_coords = np.sort(df['Y'].unique())
+        z_coords = np.sort(df['Z'].unique())
 
-    limites_xy = [
-        float(x_coords.min()),
-        float(x_coords.max()),
-        float(y_coords.min()),
-        float(y_coords.max())
-    ]
+        limites_xy = [
+            float(x_coords.min()),
+            float(x_coords.max()),
+            float(y_coords.min()),
+            float(y_coords.max())
+        ]
 
-    doses_validas = dose_3d[dose_3d > 1e-10]
-    dose_maxima_referencia = np.percentile(doses_validas, 99.5)
-    dose_normalizada = (dose_3d / dose_maxima_referencia) * 100.0
+        doses_validas = dose_3d[dose_3d > 1e-10]
+        dose_maxima_referencia = np.percentile(doses_validas, 99.5)
+        dose_normalizada = (dose_3d / dose_maxima_referencia) * 100.0
 
-    return dose_normalizada, limites_xy, z_coords, nbz
+        return dose_normalizada, limites_xy, z_coords, nbz
+
+    except Exception as e:
+        st.error(f"Ocorreu um erro ao carregar os dados: {e}")
+        st.stop()
 
 dose_normalizada, limites_xy, z_coords, nbz = carregar_dados()
 
-# --- CONTROLE SLIDER (Corte a partir da fatia 8 para remover o início em branco) ---
+# --- CONTROLE SLIDER (Corte a partir da fatia 8) ---
 fatia_inicial_valida = 8 if nbz > 8 else 0
 
 fatia_z = st.slider(
-    "Selecione a Fatia Z:",
+    "Fatia Z:",
     min_value=fatia_inicial_valida,
     max_value=nbz - 1,
     value=max(fatia_inicial_valida, nbz // 2),
-    step=1
+    step=1,
+    label_visibility="visible"
 )
 
-# Extração dos dados da fatia
 corte_xy = dose_normalizada[:, :, fatia_z].T
-profundidade_cm = z_coords[fatia_z]
 
-# --- RENDERIZAÇÃO DO GRÁFICO ---
+# --- RENDERIZAÇÃO DO GRÁFICO (MAPA DE CALOR COLORIDO - JET) ---
 fig, ax = plt.subplots(figsize=(8, 6))
 
 im = ax.imshow(
     corte_xy,
     origin='lower',
     extent=limites_xy,
-    cmap='gray_r',
+    cmap='jet',  # Paleta colorida clássica (azul, verde, amarelo, vermelho)
     vmin=0,
     vmax=100,
     interpolation='nearest',
@@ -130,13 +149,12 @@ im = ax.imshow(
 
 fig.colorbar(im, ax=ax, label='Dose Relativa (%)')
 
-# Título limpo e elegante focado apenas na profundidade
-ax.set_title(f'Profundidade: {profundidade_cm:.3f} cm', fontsize=12, fontweight='bold', pad=10)
 ax.set_xlabel('Eixo X (cm)')
 ax.set_ylabel('Eixo Y (cm)')
 
 fig.tight_layout()
 
-# Exibe o gráfico na interface limpa do Streamlit
 st.pyplot(fig)
 plt.close(fig)
+
+st.markdown("<hr>", unsafe_allow_html=True)
