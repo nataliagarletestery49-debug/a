@@ -21,7 +21,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Estilo personalizado: detalhes em vermelho e esconde o número flutuante do slider
+# Estilo para ocultar absolutamente QUALQUER número ou valor flutuante do slider
 st.markdown("""
     <style>
         hr {
@@ -31,8 +31,11 @@ st.markdown("""
             color: #b30000;
             font-weight: bold;
         }
-        /* Oculta o número/rótulo do valor flutuante acima do polegar do slider */
-        div[data-baseweb="slider"] div[class*="thumb-value"] {
+        /* Oculta qualquer número/rótulo do valor flutuante acima do slider */
+        div[data-baseweb="slider"] div[class*="thumb-value"],
+        div[data-baseweb="slider"] output,
+        span[data-baseweb="tag"],
+        .stSlider [data-testid="stMarkdownContainer"] p {
             display: none !important;
         }
     </style>
@@ -123,7 +126,7 @@ def carregar_dados():
 
 dose_normalizada, limites_xy, z_coords, nbz = carregar_dados()
 
-# --- CONTROLE SLIDER (Corte a partir da fatia 8, sem o número flutuante) ---
+# --- CONTROLE SLIDER (Sem números visíveis) ---
 fatia_inicial_valida = 8 if nbz > 8 else 0
 
 fatia_z = st.slider(
@@ -137,14 +140,14 @@ fatia_z = st.slider(
 
 corte_xy = dose_normalizada[:, :, fatia_z].T
 
-# --- RENDERIZAÇÃO DO GRÁFICO (MAPA DE CALOR PROFISSIONAL - TURBO) ---
+# --- RENDERIZAÇÃO DO GRÁFICO (APENAS AMARELO, LARANJA E VERMELHO) ---
 fig, ax = plt.subplots(figsize=(8, 6))
 
 im = ax.imshow(
     corte_xy,
     origin='lower',
     extent=limites_xy,
-    cmap='turbo',  # Mapa de calor moderno, vibrante e excelente para distribuição de dose
+    cmap='YlOrRd',  # Paleta exata de Amarelo (Yellow), Laranja (Orange) e Vermelho (Red)
     vmin=0,
     vmax=100,
     interpolation='nearest',
